@@ -46,8 +46,8 @@ Aspiring SOC Analyst with hands-on experience in Wazuh SIEM, custom detection ru
 - Web attack detection
 
 ## Contact
-- GitHub: [Your GitHub]
-- LinkedIn: [Your LinkedIn]
+- GitHub: Lekhraj Dheerani
+- LinkedIn: https://www.linkedin.com/in/lekhraj-dheerani-910a91285/?isSelfProfile=true
 
 ---
 *Last Updated: 2026-10-09*
