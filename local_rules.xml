@@ -1,0 +1,137 @@
+<!-- SSH DETECTIONS -->
+<group name="custom_ssh,">
+  <rule id="100001" level="10">
+    <if_sid>5503</if_sid>
+    <description>Custom: SSH failed login detected</description>
+    <mitre><id>T1110</id></mitre>
+  </rule>
+</group>
+
+<group name="local,brute_force,">
+  <rule id="100002" level="12" frequency="5" timeframe="120">
+    <if_matched_sid>5503</if_matched_sid>
+    <description>SSH Brute Force Attack detected</description>
+    <mitre><id>T1110</id></mitre>
+  </rule>
+</group>
+
+<group name="local,nmap_detection,">
+  <rule id="100003" level="10">
+    <if_sid>5760</if_sid>
+    <description>SSH connection detected</description>
+    <mitre><id>T1046</id></mitre>
+  </rule>
+</group>
+
+<!-- AUDITD PROCESS DETECTIONS -->
+<group name="local,audit_process,">
+  <rule id="100010" level="0">
+    <if_sid>80700</if_sid>
+    <field name="audit.cwd">/var/ossec</field>
+    <description>Ignore: Wazuh internal process</description>
+  </rule>
+
+  <rule id="100011" level="0">
+    <if_sid>80700</if_sid>
+    <field name="audit.exe">/usr/bin/dash</field>
+    <description>Ignore: dash shell (internal)</description>
+  </rule>
+
+  <rule id="100020" level="10">
+    <if_sid>80700</if_sid>
+    <field name="audit.key">process_exec</field>
+    <field name="audit.exe">/usr/bin/nc|/bin/nc|/usr/bin/ncat|/usr/bin/socat</field>
+    <description>Suspicious: netcat/socat executed</description>
+    <mitre><id>T1059</id></mitre>
+  </rule>
+
+  <rule id="100021" level="12">
+    <if_sid>80700</if_sid>
+    <field name="audit.key">process_exec</field>
+    <field name="audit.exe">xmrig|minerd|cpuminer|minergate</field>
+    <description>Cryptominer process detected</description>
+    <mitre><id>T1496</id></mitre>
+  </rule>
+
+  <rule id="100022" level="12">
+    <if_sid>80700</if_sid>
+    <field name="audit.key">process_exec</field>
+    <field name="audit.exe">nmap|masscan|hydra|medusa</field>
+    <description>Recon tool executed</description>
+    <mitre><id>T1046</id></mitre>
+  </rule>
+</group>
+
+<!-- CORRELATION RULES -->
+<group name="correlation,attack_chain,">
+  <rule id="100100" level="13" frequency="5" timeframe="300">
+    <if_matched_sid>5503</if_matched_sid>
+    <if_sid>5715</if_sid>
+    <description>CRITICAL: SSH brute force SUCCEEDED from $(srcip)</description>
+    <mitre>
+      <id>T1110</id>
+      <id>T1078</id>
+    </mitre>
+    <group>attack_chain,</group>
+  </rule>
+
+  <rule id="100101" level="14" frequency="3" timeframe="600">
+    <if_matched_sid>100100</if_matched_sid>
+    <if_sid>5402</if_sid>
+    <description>CRITICAL: sudo to ROOT after SSH breach</description>
+    <mitre>
+      <id>T1548.003</id>
+      <id>T1078</id>
+    </mitre>
+    <group>attack_chain,</group>
+  </rule>
+</group>
+
+<!-- VIRUSTOTAL ENHANCEMENT -->
+<group name="malware,virustotal,">
+  <rule id="100200" level="15">
+    <if_sid>87105</if_sid>
+    <field name="virustotal.positives" type="pcre2">^(5[0-9]|[6-9][0-9]|[1-9][0-9]{2,})$</field>
+    <description>CRITICAL: High-confidence malware detected by VirusTotal (50+ engines)</description>
+    <mitre><id>T1204</id></mitre>
+  </rule>
+
+  <rule id="100201" level="12">
+    <if_sid>87105</if_sid>
+    <field name="virustotal.positives" type="pcre2">^([1-4][0-9]|[1-9])$</field>
+    <description>WARNING: Suspicious file detected by VirusTotal (10-49 engines)</description>
+    <mitre><id>T1204</id></mitre>
+  </rule>
+
+  <rule id="100202" level="8">
+    <if_sid>87105</if_sid>
+    <field name="virustotal.positives" type="pcre2">^[1-9]$</field>
+    <description>INFO: Low-confidence detection by VirusTotal (1-9 engines)</description>
+    <mitre><id>T1204</id></mitre>
+  </rule>
+</group>
+
+<!-- MYAPP CUSTOM RULES -->
+
+
+
+<group name="myapp,application,">
+
+  <rule id="100300" level="8">
+    <match>myapp: WARNING user=</match>
+    <description>MyApp: Login failed detected</description>
+    <mitre><id>T1110</id></mitre>
+  </rule>
+
+  <rule id="100301" level="3">
+    <match>myapp: INFO login_success</match>
+    <description>MyApp: Successful login</description>
+  </rule>
+
+  <rule id="100302" level="12" frequency="5" timeframe="120">
+    <if_matched_sid>100300</if_matched_sid>
+    <same_field>srcip</same_field>
+    <description>MyApp: Brute force attack detected from $(srcip)</description>
+    <mitre><id>T1110</id></mitre>
+  </rule>
+</group>
