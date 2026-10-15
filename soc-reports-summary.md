@@ -36,6 +36,7 @@
 | 30 | data-exfiltration-report.md | Data Exfiltration | 5 | T1041 |
 | 31 | priv-esc-report.md | Privilege Escalation | 5 | T1548 |
 | 32 | persistence-report.md | Persistence | 5 | T1053 |
+| 33 | active-response-test-report.md | Active Response (SSH) | 100+ | T1110, T1078 |
 
 ## Custom Rules Created (16 Total)
 
@@ -58,7 +59,7 @@
 | 100301 | MyApp: Successful login | 3 | — |
 | 100302 | MyApp: Brute force | 12 | T1110 |
 
-## Detections Working (35+)
+## Detections Working (37+)
 
 | # | Detection | Rule | Status |
 |---|-----------|------|--------|
@@ -97,6 +98,8 @@
 | 33 | VirusTotal: Low | 100202 | ✅ |
 | 34 | MyApp: Login failed | 100300 | ✅ |
 | 35 | MyApp: Brute force | 100302 | ✅ |
+| 36 | Active Response: firewall-drop | 100002 | ✅ |
+| 37 | Active Response: disable-account | 100100 | ✅ |
 
 ---
 
@@ -116,10 +119,10 @@
 
 ## Root Cause Analysis
 
-1. **Duplicate Rule ID 100005** — ek hi ID do jagah use hui (syscollector + auditd), is se Wazuh confuse hota tha aur broad rule har execve par fire karti thi.
-2. **Broad auditd Rule** — `audit.key=process_exec` par koi filter nahi tha, is liye Wazuh ke apne internal commands bhi detect ho rahe thay.
-3. **FIM Aggressive Config** — `frequency=60` (1 minute) + `realtime=yes` on `/usr/bin, /usr/sbin` = hazaaron events per hour.
-4. **Hard Link Issue** — `alerts.log` aur `alerts.json` hard links thay (`Links: 2`), is liye `rm` karne par bhi file zinda rehti thi aur Wazuh restart par wapas link ho jati thi.
+1. **Duplicate Rule ID 100005** — The same rule ID was used in two places (syscollector + auditd), causing Wazuh confusion and the broad rule firing on every execve.
+2. **Broad auditd Rule** — There was no filter on `audit.key=process_exec`, so Wazuh's own internal commands were also being detected.
+3. **Aggressive FIM Configuration** — `frequency=60` (1 minute) + `realtime=yes` on `/usr/bin, /usr/sbin` generated thousands of events per hour.
+4. **Hard Link Issue** — `alerts.log` and `alerts.json` were hard links (`Links: 2`), so even after `rm`, the file remained alive and was relinked on Wazuh restart.
 
 ## Fixes Applied
 
@@ -153,8 +156,9 @@
 
 ```xml
 <rule id="100100" level="13" frequency="5" timeframe="300">
-  <if_matched_sid>5503</if_matched_sid>
+  <if_matched_sid>100001</if_matched_sid>
   <if_sid>5715</if_sid>
+  <same_source_ip />
   <description>CRITICAL: SSH brute force SUCCEEDED from $(srcip)</description>
   <mitre>
     <id>T1110</id>
